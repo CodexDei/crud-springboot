@@ -1,5 +1,7 @@
 package com.codexdei.springboot.app.crud.security;
 
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +16,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -22,12 +25,10 @@ import org.springframework.web.filter.CorsFilter;
 import com.codexdei.springboot.app.crud.security.filter.JwtAuthenticationFilter;
 import com.codexdei.springboot.app.crud.security.filter.JwtValidationFilter;
 
-import java.util.Arrays;
-
 @Configuration
-@EnableMethodSecurity(prePostEnabled=true)
+@EnableMethodSecurity(prePostEnabled = true)
 public class SpringSecurityConfig {
-    
+
     @Autowired
     private AuthenticationConfiguration authenticationConfiguration;
 
@@ -43,28 +44,39 @@ public class SpringSecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.authorizeHttpRequests((authz) -> authz
-                .requestMatchers(HttpMethod.GET, "/api/users").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                // .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/{id}").hasAnyRole("ADMIN", "USER")
-                // .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.PUT, "/api/products/{id}").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.DELETE, "/api/products/{id}").hasRole("ADMIN")
-                .anyRequest().authenticated())
-                .addFilter(new JwtAuthenticationFilter(authenticationManager()))
-                .addFilter(new JwtValidationFilter(authenticationManager()))
-                .csrf(config -> config.disable())
+
+        // Filtro que autentica usuario/password en /login
+        JwtAuthenticationFilter jwtAuthenticationFilter =
+                new JwtAuthenticationFilter(authenticationManager());
+
+        // Filtro que valida el JWT en cada request protegida
+        JwtValidationFilter jwtValidationFilter =
+                new JwtValidationFilter(authenticationManager());
+
+        return http
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(management ->
+                        management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight CORS
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()  // login público
+                        .requestMatchers(HttpMethod.GET, "/api/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                        .anyRequest().authenticated()
+                )
+                // Login filter en la posición del filtro de usuario/contraseña
+                .addFilterAt(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // JWT filter antes de autorizar la request
+                .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-    
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(Arrays.asList("*"));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "DELETE", "PUT"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "DELETE", "PUT", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
 
@@ -75,8 +87,8 @@ public class SpringSecurityConfig {
 
     @Bean
     FilterRegistrationBean<CorsFilter> corsFilter() {
-        FilterRegistrationBean<CorsFilter> corsBean = new FilterRegistrationBean<>(
-                new CorsFilter(corsConfigurationSource()));
+        FilterRegistrationBean<CorsFilter> corsBean =
+                new FilterRegistrationBean<>(new CorsFilter(corsConfigurationSource()));
         corsBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return corsBean;
     }

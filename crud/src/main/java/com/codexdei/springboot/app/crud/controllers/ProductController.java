@@ -8,7 +8,10 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +27,7 @@ import com.codexdei.springboot.app.crud.services.ProductService;
 
 import jakarta.validation.Valid;
 
+@CrossOrigin(origins = "http://localhost:4200", originPatterns = "*")
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -34,12 +38,14 @@ public class ProductController {
 /*     @Autowired
     private ProductValidation validation; */
 
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping
     public List<Product> list() {
 
         return productService.findAll();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping("/{id}")
     public ResponseEntity<Product> view(@PathVariable Long id) {
 
@@ -55,8 +61,12 @@ public class ProductController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody Product product, BindingResult result) {
+
+    System.out.println("AUTH = " + SecurityContextHolder.getContext().getAuthentication());
+    System.out.println("ROLES = " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
 
 /*         validation.validate(product, result);
  */
@@ -68,6 +78,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.save(product));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("{id}")
     public ResponseEntity<?> update(@Valid @RequestBody Product product, BindingResult result,
             @PathVariable Long id) {
@@ -92,6 +103,7 @@ public class ProductController {
 
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Product> delete(@PathVariable Long id) {
 
