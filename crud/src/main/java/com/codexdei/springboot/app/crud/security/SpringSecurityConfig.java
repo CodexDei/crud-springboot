@@ -59,8 +59,11 @@ public class SpringSecurityConfig {
                 .sessionManagement(management ->
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight CORS
-                        .requestMatchers(HttpMethod.POST, "/login").permitAll()  // login público
+                // .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                // .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/{id}").hasAnyRole("ADMIN", "USER")
+                //.requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
+                // .requestMatchers(HttpMethod.PUT, "/api/products/{id}").hasRole("ADMIN")
+                // .requestMatchers(HttpMethod.DELETE, "/api/products/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                         .anyRequest().authenticated()

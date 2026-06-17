@@ -26,9 +26,15 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
+
+    UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    
+   // @PreAuthorize("hasRole('USER','ADMIN')")
     @GetMapping
     public List<User> list() {
 
@@ -48,6 +54,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(user));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody User user, BindingResult result) {
 

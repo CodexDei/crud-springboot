@@ -33,7 +33,7 @@ public class Product {
     private Integer price;
 
     @NotBlank(message = "{NotBlank.product.description}")
-    @Size(min = 3, max = 5)
+    @Size(min = 3, max = 10)
     private String description;
 
     @IsExistDb

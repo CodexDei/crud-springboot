@@ -32,8 +32,11 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/products")
 public class ProductController {
 
-    @Autowired
-    private ProductService productService;
+    private final ProductService productService;
+
+    ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
 /*     @Autowired
     private ProductValidation validation; */
@@ -45,7 +48,7 @@ public class ProductController {
         return productService.findAll();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Product> view(@PathVariable Long id) {
 
